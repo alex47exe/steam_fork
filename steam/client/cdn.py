@@ -539,26 +539,33 @@ class CDNClient:
         :return: CDN authentication token
         :rtype: str
         """
-        def update_cdn_auth_tokens():
-            resp = self.steam.send_um_and_wait('ContentServerDirectory.GetCDNAuthToken#1', {
-                'app_id': app_id,
-                'depot_id': depot_id,
-                'host_name': hostname
-            }, timeout=10)
+        def update_cdn_auth_tokens(retry=3):
+            while retry > 0:
+                retry -= 1
 
-            if resp is None or resp.header.eresult != EResult.OK:
-                if resp.header.eresult == EResult.Fail:
-                    # no need authtoken?
-                    pass
-                else:
-                    raise SteamError(f"Failed to get CDNAuthToken for {app_id}, {depot_id}, {hostname}",
-                                     EResult.Timeout if resp is None else EResult(resp.header.eresult))
+                resp = self.steam.send_um_and_wait('ContentServerDirectory.GetCDNAuthToken#1', {
+                    'app_id': app_id,
+                    'depot_id': depot_id,
+                    'host_name': hostname
+                }, timeout=10)
 
-            self.cdn_auth_tokens.update({app_id:{depot_id:{hostname: {
-                'eresult': resp.header.eresult,
-                'token': resp.body.token or '',
-                'expiration_time': resp.body.expiration_time or 0
-            }}}})
+                try:
+                    if resp.header.eresult == EResult.OK:
+                        self.cdn_auth_tokens.update({app_id:{depot_id:{hostname: {
+                            'eresult': resp.header.eresult,
+                            'token': resp.body.token or '',
+                            'expiration_time': resp.body.expiration_time or 0
+                        }}}})
+                        return
+                    elif resp.header.eresult == EResult.Fail:
+                        # no need authtoken?
+                        return
+                    else:
+                        self._LOG.error(f"Failed to get CDNAuthToken for {app_id}, {depot_id}, {hostname}, {resp.header.eresult}")
+                except Exception as err:
+                        self._LOG.error(f"CDNAuthToken request error {resp or 'Unknown'} for {app_id}, {depot_id}, {hostname}")
+
+            raise SteamError('Max retry on getting CDNAuthToken', eresult=EResult.Fail)
 
         if app_id not in self.cdn_auth_tokens or \
            depot_id not in self.cdn_auth_tokens[app_id] or \
