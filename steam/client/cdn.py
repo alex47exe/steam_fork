@@ -563,7 +563,7 @@ class CDNClient:
                     else:
                         self._LOG.error(f"Failed to get CDNAuthToken for {app_id}, {depot_id}, {hostname}, {resp.header.eresult}")
                 except Exception as err:
-                        self._LOG.error(f"CDNAuthToken request error {resp or 'Unknown'} for {app_id}, {depot_id}, {hostname}")
+                        self._LOG.error(f"CDNAuthToken request error {err or 'Unknown'} for {app_id}, {depot_id}, {hostname}")
 
             raise SteamError('Max retry on getting CDNAuthToken', eresult=EResult.Fail)
 
