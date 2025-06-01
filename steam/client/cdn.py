@@ -622,7 +622,7 @@ class CDNClient:
                 server.port,
                 command,
                 args,
-                self.get_cdn_auth_token(app_id, depot_id, str(server.host))
+                self.get_cdn_auth_token(app_id, depot_id, str(server.host))['token']
                 )
 
             try:
